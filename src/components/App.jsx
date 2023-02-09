@@ -1,59 +1,58 @@
 import { Searchbar } from "./Searchbar/Searchbar";
-import { Component } from "react";
 import { fetchImages } from 'services/apiServices';
 import { ImageGallery } from "./ImageGallery/ImageGallery";
 import { Button } from "./Button/Button";
 import { Loader } from "./Loader/Loader";
+import { useEffect, useState } from 'react';
 
-export class App extends Component {
+export default function App () {
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalImages, setTotalImages] = useState(0);
 
-  state = {
-    query: '',
-    page: 1,
-    images: [],
-    isLoading: false,
-    totalImages: 0,
+  useEffect(() => {
+    if (query === '')
+      return ;
+    fetchImages(query, page).then(resp => {
+      if (!resp)
+        return null;
+      if (page === 1)
+        setImages([...resp.hits])
+      else
+        setImages([...images, ...resp.hits])
+      setTotalImages(resp.totalHits); 
+    }).finally(() => setIsLoading(false))
+  }, [query, page]);
+
+  const handleSubmit = query => {
+    setQuery(query)
+    setIsLoading(true)
+    setPage(1)
   }
 
-  componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
-    if (prevState.query !== query || prevState.page !== page) {
-      fetchImages(query, page).then(resp => {
-        if (!resp)
-          return null;
-        this.setState(prev => ({ 
-            images: page === 1 ? [...resp.hits] : [...prev.images, ...resp.hits],
-            totalImages: resp.totalHits, 
-          })); 
-        }).finally(() => {this.setState({isLoading: false })});
-    }
+  const handleLoadMore = () => {
+    setPage(page + 1);
+    setIsLoading(true);
   }
 
-  handleSubmit =  (query) => {
-    this.setState({ query, isLoading: true, page: 1 });
-  }
-
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1, isLoading: true }))
-  };
-
-  renderButtonOrLoader = () => {
-    return this.state.isLoading ? ( 
+  const renderButtonOrLoader = () => {
+    return isLoading ? ( 
             <Loader/> 
             ) : ( 
-              !!this.state.images.length && 
-              this.state.images.length < this.state.totalImages &&
-              (<Button onLoadMore={this.handleLoadMore}/> )
+              !!images.length && 
+                images.length < totalImages &&
+              (<Button onLoadMore={handleLoadMore}/> )
             )
   }
 
-  render() {
-    return (
+  return (
       <>
-        <Searchbar onSubmit={this.handleSubmit}/>
-        <ImageGallery images={this.state.images}/>
-        {this.renderButtonOrLoader()}
+        <Searchbar onSubmit={handleSubmit}/>
+        <ImageGallery images={images}/>
+        {renderButtonOrLoader()}
       </> 
     )
-  }
 }
+
