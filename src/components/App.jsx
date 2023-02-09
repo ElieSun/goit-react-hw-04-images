@@ -21,15 +21,16 @@ export default function App () {
       if (page === 1)
         setImages([...resp.hits])
       else
-        setImages([...images, ...resp.hits])
+        setImages(prevState => [...prevState, ...resp.hits])
       setTotalImages(resp.totalHits); 
     }).finally(() => setIsLoading(false))
   }, [query, page]);
 
   const handleSubmit = query => {
     setQuery(query)
-    setIsLoading(true)
+    query === '' ? setIsLoading(false) : setIsLoading(true)
     setPage(1)
+    setImages([])
   }
 
   const handleLoadMore = () => {
